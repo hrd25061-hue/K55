@@ -1,4 +1,8 @@
-Page Configuration
+import random
+from fpdf import FPDF
+import base64
+
+# Page Configuration
 st.set_page_config(
     page_title="AI Career Guidance & Potential Assessment",
     page_icon="🚀",
