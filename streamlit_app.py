@@ -1,208 +1,819 @@
-import streamlit as st
-import random
-from fpdf import FPDF
+export * from "./errors";
 
-# Page Configuration
-st.set_page_config(
-    page_title="AI Career Guidance & Potential Assessment",
-    page_icon="🚀",
-    layout="wide"
-)
+/* ── Shared assessment contracts (frontend ↔ backend) ───────────────────── */
 
-# Initialize Session State Variables
-if "step" not in st.session_state:
-    st.session_state.step = "welcome"
-if "language" not in st.session_state:
-    st.session_state.language = "English"
-if "iq_questions" not in st.session_state:
-    st.session_state.iq_questions = []
-if "eq_questions" not in st.session_state:
-    st.session_state.eq_questions = []
-if "iq_answers" not in st.session_state:
-    st.session_state.iq_answers = {}
-if "eq_answers" not in st.session_state:
-    st.session_state.eq_answers = {}
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+export type Language = "en" | "si" | "ta";
 
-# Dynamic Question Banks based on Language
-def load_questions(lang):
-    if lang == "සිංහල (Sinhala)":
-        iq_bank = [
-            {"q": "1, 4, 9, 16, 25, ?", "options": ["30", "36", "49", "64"], "ans": "36"},
-            {"q": "ප්‍රශ්න ලකුණට ගැළපෙන අංකය තෝරන්න: 3, 6, 12, 24, ?", "options": ["36", "48", "60", "72"], "ans": "48"},
-            {"q": "සියලුම බළලුන් සතුන් වේ. සමහර සතුන් සුරතලුන් වේ. එහෙනම් සියලුම බළලුන් සුරතලුන් වේද?", "options": ["නිවැරදියි", "වැරදියයි", "කිව නොහැක", "අදාළ නැත"], "ans": "කිව නොහැක"},
-            {"q": "ඔබ උතුරට හැරී සිට නැවත දකුණට හැරී, පසුව වමට හැරුණොත් ඔබ දැන් මුහුණලා සිටින්නේ කුමන දිශාවටද?", "options": ["නැඟෙනහිර", "බස්නාහිර", "උතුර", "දකුණ"], "ans": "නැඟෙනහිර"},
-            {"q": "මාසයකට දින 30ක් ඇති විට, වසරකට එවැනි මාස කීයක් තිබේද?", "options": ["7", "11", "12", "0"], "ans": "12"}
-        ]
-        eq_bank = [
-            {"q": "වැඩ කරන ස්ථානයේදී ඔබේ සගයෙකු ඔබ සමඟ කේන්තියෙන් කතා කළහොත් ඔබ කුමක් කරන්නේද?", "options": ["මාත් කේන්තියෙන් ප්‍රතිචාර දක්වයි", "සන්සුන්ව හේතුව විමසා සාකච්ඡා කරයි", "නොසලකා හරියි", "පැමිණිලි කරයි"], "ans": "සන්සුන්ව හේතුව විමසා සාකච්ඡා කරයි"},
-            {"q": "අසාර්ථක වීමක් හමුවේ ඔබට හැඟෙන පළමු දෙය කුමක්ද?", "options": ["නැවත උත්සාහ නොකර සිටීම", "වෙනත් අයෙකු වැරදිකරු කිරීම", "එය ඉගෙනුම් පියවරක් ලෙස ගැනීම", "කාලය නාස්ති වීමක් ලෙස සිතීම"], "ans": "එය ඉගෙනුම් පියවරක් ලෙස ගැනීම"},
-            {"q": "කණ්ඩායම් ව්‍යාපෘතියකදී අදහස් ගැටුමක් ඇති වූ විට ඔබේ ප්‍රවේශය කුමක්ද?", "options": ["මගේ අදහම පමණක් බලපැවැත්වීම", "අන් අයගේ අදහස් වලට ගරු කර පොදු එකඟතාවකට ඒම", "ව්‍යාපෘතියෙන් ඉවත් වීම", "නොසලකා හැරීම"], "ans": "අන් අයගේ අදහස් වලට ගරු කර පොදු එකඟතාවකට ඒම"}
-        ]
-    elif lang == "தமிழ் (Tamil)":
-        iq_bank = [
-            {"q": "1, 4, 9, 16, 25, ?", "options": ["30", "36", "49", "64"], "ans": "36"},
-            {"q": "தொடரை நிரப்புக: 3, 6, 12, 24, ?", "options": ["36", "48", "60", "72"], "ans": "48"},
-            {"q": "வடக்கு நோக்கி நின்று வலதுபுறம் திரும்பி மீண்டும் இடதுபுறம் திரும்பினால் எந்த திசையை நோக்குகிறீர்கள்?", "options": ["கிழக்கு", "மேற்கு", "வடக்கு", "தெற்கு"], "ans": "கிழக்கு"}
-        ]
-        eq_bank = [
-            {"q": "வேலை இடத்தில் சக பணியாளர் கோபமாக பேசினால் உங்கள் எதிர்வினை என்ன?", "options": ["கோபப்படுவது", "அமைதியாக பேசி தீர்ப்பது", "புறக்கணிப்பது", "புகார் செய்வது"], "ans": "அமைதியாக பேசி தீர்ப்பது"},
-            {"q": "தோல்வியை சந்திக்கும் போது உங்கள் மனநிலை எப்படி இருக்கும்?", "options": ["முயற்சியை கைவிடுவது", "மற்றவரை குறை கூறுவது", "அதை ஒரு பாடமாக கற்றுக்கொள்வது", "வருந்துவது"], "ans": "அதை ஒரு பாடமாக கற்றுக்கொள்வது"}
-        ]
-    else: # English
-        iq_bank = [
-            {"q": "What comes next in the series: 2, 4, 8, 16, 32, ?", "options": ["48", "64", "128", "60"], "ans": "64"},
-            {"q": "If all roses are flowers and some flowers fade quickly, are all roses fading quickly?", "options": ["True", "False", "Cannot be determined", "None"], "ans": "Cannot be determined"},
-            {"q": "Find the odd one out:", "options": ["Circle", "Square", "Triangle", "Cube"], "ans": "Cube"},
-            {"q": "If a train travels at 60 km/h, how far does it go in 30 minutes?", "options": ["30 km", "60 km", "120 km", "15 km"], "ans": "30 km"},
-            {"q": "Complete the sequence: A, C, F, J, O, ?", "options": ["R", "S", "T", "U"], "ans": "U"}
-        ]
-        eq_bank = [
-            {"q": "How do you handle constructive criticism from a supervisor?", "options": ["Take it personally", "Analyze and use it for self-improvement", "Ignore it completely", "Get defensive"], "ans": "Analyze and use it for self-improvement"},
-            {"q": "When a team member is struggling with stress, what do you do?", "options": ["Ignore them", "Offer support and listen empathetically", "Complain to management", "Take over their work without talking"], "ans": "Offer support and listen empathetically"},
-            {"q": "How do you react when unexpected changes happen in a project?", "options": ["Panic", "Adapt flexibly and plan accordingly", "Refuse to change", "Blame others"], "ans": "Adapt flexibly and plan accordingly"}
-        ]
-    
-    return random.sample(iq_bank, min(len(iq_bank), 5)), random.sample(eq_bank, min(len(eq_bank), 3))
+export const LANGUAGES: { code: Language; label: string; native: string }[] = [
+  { code: "en", label: "English", native: "English" },
+  { code: "si", label: "Sinhala", native: "සිංහල" },
+  { code: "ta", label: "Tamil", native: "தமிழ்" },
+];
 
-# --- APP UI FLOW ---
+export const LANGUAGE_NAMES: Record<Language, string> = {
+  en: "English",
+  si: "Sinhala",
+  ta: "Tamil",
+};
 
-st.title("🚀 AI Career Guidance & Potential Assessment Platform")
-st.markdown("Discover your true capacity, match your IQ/EQ profile, and get tailored career roadmaps.")
+export type IqDomain = "logical" | "numerical" | "verbal" | "pattern";
+export type EqDomain =
+  | "self-awareness"
+  | "empathy"
+  | "self-regulation"
+  | "social-skill"
+  | "motivation";
 
-# Step 1: Language & Welcome
-if st.session_state.step == "welcome":
-    st.subheader("Step 1: Choose Your Preferred Language / ඔබේ භාෂාව තෝරන්න")
-    lang = st.selectbox("Select Language", ["English", "සිංහල (Sinhala)", "தமிழ் (Tamil)"])
-    
-    if st.button("Start Assessment / පරීක්ෂණය අරඹන්න"):
-        st.session_state.language = lang
-        iq, eq = load_questions(lang)
-        st.session_state.iq_questions = iq
-        st.session_state.eq_questions = eq
-        st.session_state.step = "assessment"
-        st.rerun()
+export interface IqQuestion {
+  id: string;
+  domain: IqDomain;
+  question: string;
+  /** always 4 entries (enforced by server schema) */
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
 
-# Step 2: Capacity Assessment (IQ & EQ)
-elif st.session_state.step == "assessment":
-    st.header("🧠 Capacity Assessment (IQ & EQ)")
-    st.write(f"Language Mode: **{st.session_state.language}**")
-    
-    with st.form("assessment_form"):
-        st.subheader("Part 1: IQ Questions")
-        for i, q in enumerate(st.session_state.iq_questions):
-            st.session_state.iq_answers[i] = st.radio(f"Q{i+1}: {q['q']}", q['options'], key=f"iq_{i}")
-            
-        st.markdown("---")
-        st.subheader("Part 2: EQ Questions")
-        for j, q in enumerate(st.session_state.eq_questions):
-            st.session_state.eq_answers[j] = st.radio(f"EQ-{j+1}: {q['q']}", q['options'], key=f"eq_{j}")
-            
-        submitted = st.form_submit_button("Submit Assessment & Generate Certificate")
-        if submitted:
-            st.session_state.step = "results"
-            st.rerun()
+export interface EqOption {
+  text: string;
+  /** 0 = least emotionally intelligent response, 3 = most */
+  score: number;
+}
 
-# Step 3: Results, Certificate & Career Matching
-elif st.session_state.step == "results":
-    st.header("🏆 Assessment Results & Career Matching Engine")
-    
-    iq_score = random.randint(115, 140)
-    eq_score = random.randint(85, 98)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(label="Calculated IQ Score", value=iq_score)
-    with col2:
-        st.metric(label="Calculated EQ Score", value=f"{eq_score}%")
-        
-    st.success("🎉 Congratulations! Your personalized IQ & EQ profile has been generated successfully.")
-    
-    def create_certificate():
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", 'B', 16)
-        pdf.cell(200, 10, txt="Certificate of Potential & Capacity Assessment", ln=True, align='C')
-        pdf.set_font("Arial", '', 12)
-        pdf.ln(20)
-        pdf.cell(200, 10, txt="This certifies that the candidate has successfully completed", ln=True, align='C')
-        pdf.cell(200, 10, txt="the Advanced IQ & EQ Evaluation Engine.", ln=True, align='C')
-        pdf.ln(15)
-        pdf.cell(200, 10, txt="Performance Metrics:", ln=True, align='L')
-        pdf.cell(200, 10, txt=f"- IQ Score: {iq_score}", ln=True, align='L')
-        pdf.cell(200, 10, txt=f"- EQ Score: {eq_score}%", ln=True, align='L')
-        return pdf.output(dest='S').encode('latin1')
+export interface EqQuestion {
+  id: string;
+  domain: EqDomain;
+  scenario: string;
+  /** always 4 entries (enforced by server schema) */
+  options: EqOption[];
+}
 
-    pdf_bytes = create_certificate()
-    st.download_button(
-        label="📥 Download Official IQ/EQ Certificate (PDF)",
-        data=pdf_bytes,
-        file_name="IQ_EQ_Certificate.pdf",
-        mime="application/pdf"
-    )
-    
-    st.markdown("---")
-    st.subheader("🎯 AI Career Recommendations & Path Matching")
-    st.info("Based on your high analytical capacity and strong emotional intelligence, here are your best career matches:")
-    
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-        st.markdown("**1. Enterprise AI & HR Tech Lead**")
-        st.caption("Matches high strategic thinking and empathy.")
-    with col_b:
-        st.markdown("**2. Startup Founder / Innovator**")
-        st.caption("Matches problem-solving and self-starter mindset.")
-    with col_c:
-        st.markdown("**3. Strategic Business Consultant**")
-        st.caption("Matches high IQ data analysis and high EQ communication.")
+export interface DomainScore {
+  domain: string;
+  earned: number;
+  possible: number;
+}
 
-    st.markdown("---")
-    st.subheader("💬 Interactive Career Roadmap Evaluator (GPT/Gemini Style)")
-    st.write("Have a specific career or skill in mind that you love? Enter it below and our AI will evaluate its suitability, long-term progression, and roadmap for you!")
-    
-    user_custom_skill = st.text_input("Enter your preferred career, passion, or skill (e.g., UI/UX Designer, Wildlife Vlogger, AI Developer):")
-    if st.button("Analyze My Custom Choice"):
-        if user_custom_skill:
-            st.markdown(f"### 🤖 AI Evaluation for: `{user_custom_skill}`")
-            st.markdown(f"""
-            - **Is this suitable for you?** Yes! Given your profile balance, **{user_custom_skill}** aligns well with your creative problem-solving capacity.
-            - **Long-term Progression:** High potential for scalability, remote work, and independent entrepreneurship.
-            - **Recommended Roadmap Steps:**
-              1. Master the foundational tools and self-studying frameworks within the next 3 months.
-              2. Build a portfolio or mini-project (like an interactive prototype or niche platform).
-              3. Connect with industry mentors and scale globally.
-            """)
-        else:
-            st.warning("Please type a career or skill first.")
+export interface AssessmentProfile {
+  name: string;
+  language: Language;
+  interests: string;
+  iqRaw: number;
+  iqPossible: number;
+  iqScore: number;
+  iqDomains: DomainScore[];
+  eqRaw: number;
+  eqPossible: number;
+  eqScore: number;
+  eqDomains: DomainScore[];
+}
 
-    st.markdown("---")
-    if st.button("Proceed to Live AI Mentorship Chat ➔"):
-        st.session_state.step = "chat"
-        st.rerun()
+/* ── Career engine ──────────────────────────────────────────────────────── */
 
-# Step 4: Interactive AI Chatbot Integration (Mentor)
-elif st.session_state.step == "chat":
-    st.header("🤖 Interactive AI Career Mentor")
-    st.write("Ask any follow-up questions regarding your career, skill development, or entrepreneurship journey.")
-    
-    for message in st.session_state.chat_history:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-            
-    if prompt := st.chat_input("Ask your mentor anything..."):
-        st.session_state.chat_history.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-            
-        response = f"That is a great question regarding '{prompt}'. Based on your profile and long-term goals, consistency and building practical projects will give you the fastest breakthrough. Focus on execution step-by-step!"
-        
-        st.session_state.chat_history.append({"role": "assistant", "content": response})
-        with st.chat_message("assistant"):
-            st.markdown(response)
+export interface CareerRecommendation {
+  title: string;
+  fitPercent: number;
+  why: string;
+  keySkills: string[];
+  outlook: string;
+}
 
-    if st.button("🔄 Restart Assessment"):
-        st.session_state.step = "welcome"
-        st.session_state.chat_history = []
-        st.rerun()
+export interface VentureIdea {
+  idea: string;
+  whyItFits: string;
+  firstSteps: string[];
+}
 
+export interface SkillPath {
+  skill: string;
+  why: string;
+  plan: string[];
+}
+
+export interface CareerAnalysis {
+  headline: string;
+  summary: string;
+  careers: CareerRecommendation[];
+  ventures: VentureIdea[];
+  development: SkillPath[];
+}
+
+export type FitVerdict = "strong" | "promising" | "conditional" | "challenging";
+
+export interface RoadmapPhase {
+  phase: string;
+  duration: string;
+  steps: string[];
+}
+
+export interface CareerEvaluation {
+  career: string;
+  verdict: FitVerdict;
+  verdictLine: string;
+  suitable: string;
+  longTerm: string;
+  strengthsYouBring: string[];
+  gapsToClose: string[];
+  roadmap: RoadmapPhase[];
+  alternatives: string[];
+}
+
+/* ── Chat ───────────────────────────────────────────────────────────────── */
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+type AppError = { tag: "app_error"; status: number; message: string };
+
+function appError(status: number, message: string): AppError {
+  return { tag: "app_error", status, message };
+}
+
+export const Errors = {
+  badRequest: (msg: string) => appError(400, msg),
+  unauthorized: (msg: string) => appError(401, msg),
+  forbidden: (msg: string) => appError(403, msg),
+  notFound: (msg: string) => appError(404, msg),
+  internal: (msg: string) => appError(500, msg),
+} as const;
+
+export type { AppError };
+type AppError = { tag: "app_error"; status: number; message: string };
+
+function appError(status: number, message: string): AppError {
+  return { tag: "app_error", status, message };
+}
+
+export const Errors = {
+  badRequest: (msg: string) => appError(400, msg),
+  unauthorized: (msg: string) => appError(401, msg),
+  forbidden: (msg: string) => appError(403, msg),
+  notFound: (msg: string) => appError(404, msg),
+  internal: (msg: string) => appError(500, msg),
+} as const;
+
+export type { AppError };
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+CMD ["node", "dist/boot.js"]
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Aptitude — AI Career Guidance & Potential Assessment</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Archivo:wght@300;400;500;600;700&family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=Noto+Sans+Tamil:wght@300;400;500;600;700&family=Noto+Serif+Sinhala:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: ["class"],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        cream: "#ece0c6",
+        parchment: "#e4d5b5",
+        ink: "#1d1d1d",
+        night: "#16130e",
+        coral: "#f4583d",
+        iqblue: "#2835f8",
+        terra: "#e1654f",
+        amber: "#f5ce84",
+        mutedstone: "#8d8172",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive) / <alpha-value>)",
+          foreground: "hsl(var(--destructive-foreground) / <alpha-value>)",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
+      },
+      borderRadius: {
+        xl: "calc(var(--radius) + 4px)",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+        xs: "calc(var(--radius) - 6px)",
+      },
+      boxShadow: {
+        xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "caret-blink": {
+          "0%,70%,100%": { opacity: "1" },
+          "20%,50%": { opacity: "0" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "caret-blink": "caret-blink 1.25s ease-out infinite",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+}{
+  "version": 1,
+  "features": ["db"],
+  "app_id": "1a0f21a1-7652-89e7-8000-0000dc42c10f",
+  "initialized_at": "2026-09-30T11:38:12Z"
+}
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    },
+    {
+      "path": "./tsconfig.server.json"
+    }
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@contracts/*": [
+        "./contracts/*"
+      ],
+      "@db/*": [
+        "./db/*"
+      ]
+    }
+  }
+}
+import { defineConfig } from "vitest/config";
+import path from "path";
+
+const templateRoot = path.resolve(import.meta.dirname);
+
+export default defineConfig({
+  root: templateRoot,
+  resolve: {
+    alias: {
+      "@": path.resolve(templateRoot, "src"),
+      "@contracts": path.resolve(templateRoot, "contracts"),
+      "@assets": path.resolve(templateRoot, "attached_assets"),
+    },
+  },
+  test: {
+    environment: "node",
+    include: ["api/**/*.test.ts", "api/**/*.spec.ts"],
+  },
+});
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "types": [
+      "vite/client",
+      "node"
+    ],
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@contracts/*": [
+        "./contracts/*"
+      ],
+      "@db/*": [
+        "./db/*"
+      ]
+    },
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": [
+    "src"
+  ]
+}
+# ── Backend ─────────────────────────────────────────────────────
+APP_ID=                   # Application ID
+APP_SECRET=               # Application secret (used for JWT signing)
+
+# ── Database ───────────────────────────────────────────────────
+DATABASE_URL=             # MySQL connection string (mysql://user:pass@host:port/db)
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.dist
+
+# Generated files
+*.tsbuildinfo
+coverage/
+
+# Package files
+package-lock.json
+pnpm-lock.yaml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Environment files
+.env*
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+import "dotenv/config";
+import { defineConfig } from "drizzle-kit";
+
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required to run drizzle commands");
+}
+
+export default defineConfig({
+  schema: "./db/schema.ts",
+  out: "./db/migrations",
+  dialect: "mysql",
+  dbCredentials: {
+    url: connectionString,
+  },
+});
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@contracts/*": ["./contracts/*"],
+      "@db/*": ["./db/*"]
+    }
+  },
+  "include": ["api", "contracts", "db"]
+}
+{
+  "name": "my-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && esbuild api/boot.ts --platform=node --bundle --format=esm --outdir=dist --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\"",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "start": "NODE_ENV=production node dist/boot.js",
+    "check": "tsc -b",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@radix-ui/react-accordion": "^1.2.12",
+    "@radix-ui/react-alert-dialog": "^1.1.15",
+    "@radix-ui/react-aspect-ratio": "^1.1.8",
+    "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-checkbox": "^1.3.3",
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-context-menu": "^2.2.16",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-hover-card": "^1.1.15",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-menubar": "^1.1.16",
+    "@radix-ui/react-navigation-menu": "^1.2.14",
+    "@radix-ui/react-popover": "^1.1.15",
+    "@radix-ui/react-progress": "^1.1.8",
+    "@radix-ui/react-radio-group": "^1.3.8",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slider": "^1.3.6",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/react-toggle": "^1.1.10",
+    "@radix-ui/react-toggle-group": "^1.1.11",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.1.0",
+    "embla-carousel-react": "^8.6.0",
+    "input-otp": "^1.4.2",
+    "lucide-react": "^0.562.0",
+    "next-themes": "^0.4.6",
+    "react": "^19.2.0",
+    "react-day-picker": "^9.13.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^7.6.1",
+    "react-hook-form": "^7.70.0",
+    "react-resizable-panels": "^4.2.2",
+    "recharts": "^2.15.4",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.4.0",
+    "vaul": "^1.1.2",
+    "zod": "^4.3.5",
+    "@tanstack/react-query": "^5.90.16",
+    "@trpc/client": "^11.8.1",
+    "@trpc/react-query": "^11.8.1",
+    "@trpc/server": "^11.8.1",
+    "dotenv": "^17.2.3",
+    "hono": "^4.8.3",
+    "@hono/node-server": "^1.14.3",
+    "superjson": "^2.2.6",
+    "ai": "6.0.290",
+    "@ai-sdk/openai-compatible": "2.0.78",
+    "drizzle-orm": "^0.45.1",
+    "mysql2": "^3.14.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.23",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "kimi-plugin-inspect-react": "^1.0.3",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "tailwindcss-animate": "^1.0.7",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4",
+    "@hono/vite-dev-server": "^0.19.0",
+    "esbuild": "^0.27.2",
+    "prettier": "^3.7.4",
+    "vitest": "^4.0.16",
+    "drizzle-kit": "^0.31.8"
+  }
+}
+import devServer from "@hono/vite-dev-server"
+import path from "path"
+const __dirname = import.meta.dirname
+import react from "@vitejs/plugin-react"
+import { defineConfig } from "vite"
+import { inspectAttr } from 'kimi-plugin-inspect-react'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [
+    devServer({ entry: "api/boot.ts", exclude: [/^\/(?!api\/).*$/] }),
+    inspectAttr(), react()],
+  server: {
+    port: 3000,
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "@contracts": path.resolve(__dirname, "./contracts"),
+      "@db": path.resolve(__dirname, "./db"),
+      "db": path.resolve(__dirname, "./db"),
+    },
+  },
+  envDir: path.resolve(__dirname),
+  build: {
+    outDir: path.resolve(__dirname, "dist/public"),
+    emptyOutDir: true,
+  },
+});
+node_modules
+dist
+.git
+*.swp
+*.log
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# Environment variables
+.env
+.env.local
+.env.*.local
+# Database
+*.db
+*.sqlite
+*.sqlite3
+db/migrations/*.sql
+# TypeScript cache
+*.tsbuildinfo
+# Build outputs
+dist/
+build/
+# Test coverage
+coverage/
+.nyc_output/
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "postcss.config.js",
+    "css": "src/index.css",
+    "baseColor": "slate",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  },
+  "registries": {}
+}
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["vite.config.ts"]
+}
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import tseslint from 'typescript-eslint'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+  },
+])
+# React + TypeScript + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
+
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
+Using Node.js 20, Tailwind CSS v3.4.19, and Vite v7.2.4
+
+Tailwind CSS has been set up with the shadcn theme
+
+Setup complete: /mnt/agents/output/app
+
+Components (40+):
+  accordion, alert-dialog, alert, aspect-ratio, avatar, badge, breadcrumb,
+  button-group, button, calendar, card, carousel, chart, checkbox, collapsible,
+  command, context-menu, dialog, drawer, dropdown-menu, empty, field, form,
+  hover-card, input-group, input-otp, input, item, kbd, label, menubar,
+  navigation-menu, pagination, popover, progress, radio-group, resizable,
+  scroll-area, select, separator, sheet, sidebar, skeleton, slider, sonner,
+  spinner, switch, table, tabs, textarea, toggle-group, toggle, tooltip
+
+Usage:
+  import { Button } from '@/components/ui/button'
+  import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+
+Structure:
+  src/sections/        Page sections
+  src/hooks/           Custom hooks
+  src/types/           Type definitions
+  src/App.css          Styles specific to the Webapp
+  src/App.tsx          Root React component
+  src/index.css        Global styles
+  src/main.tsx         Entry point for rendering the Webapp
+  index.html           Entry point for the Webapp
+  tailwind.config.js   Configures Tailwind's theme, plugins, etc.
+  vite.config.ts       Main build and dev server settings for Vite
+  postcss.config.js    Config file for CSS post-processing tools
