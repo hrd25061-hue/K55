@@ -1,19 +1,3 @@
-
-
-Skip to content
-Using Uva Wellassa University Mail with screen readers
-Enable desktop notifications for Uva Wellassa University Mail.
-   OK  No thanks
-
-3 of 8
-(no subject)
-External
-Inbox
-
-Umodya Abeywickrama <abeywickramaumodya@gmail.com>
-4:21 AM (1 hour ago)
-to me
-
 import streamlit as st
 import random
 
@@ -36,9 +20,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# -------------------------------------------------------------------------
-# MULTI-LANGUAGE TRANSLATIONS (English, සිංහල, தமிழ்)
-# -------------------------------------------------------------------------
+# MULTI-LANGUAGE TRANSLATIONS
 lang = st.sidebar.selectbox("🌐 Select Language / භාෂාව / மொழி", ["English", "සිංහල", "தமிழ்"])
 
 t = {
@@ -77,9 +59,7 @@ t = {
     }
 }[lang]
 
-# -------------------------------------------------------------------------
-# KNOWLEDGE BASE ENGINE (Philosophy, Psychology, Legal, Strategy, Case Studies)
-# -------------------------------------------------------------------------
+# KNOWLEDGE BASE
 KNOWLEDGE_BASE = {
     "Philosophy & Ethics": [
         "Aristotle Virtue Ethics & Immanuel Kant Deontology",
@@ -105,27 +85,22 @@ KNOWLEDGE_BASE = {
         "OKRs (Objectives and Key Results) & Benjamin Graham's Intelligent Investor",
         "Case Studies: Satya Nadella's Microsoft, Apollo 13, Volkswagen Dieselgate, Patagonia, Gravity Payments"
     ],
-    "HR & Communication (Non-Violent Communication)": [
+    "HR & Communication": [
         "Marshall Rosenberg's NVC & Dale Carnegie Principles",
         "SHRM & CIPD Professional Maps, ONET Online, Hofstede Insights",
         "Simon Sinek (Start with Why) & Matthew Walker Sleep Research"
     ]
 }
 
-# -------------------------------------------------------------------------
 # MAIN APP HEADER
-# -------------------------------------------------------------------------
 st.markdown(f'<p class="main-header">{t["title"]}</p>', unsafe_allow_html=True)
 st.write(t["subtitle"])
 
 role = st.sidebar.selectbox(t["portal"], [t["ceo"], t["emp"], t["kb"], t["arch"]])
 
-# -------------------------------------------------------------------------
 # CEO PORTAL
-# -------------------------------------------------------------------------
 if role == t["ceo"]:
     st.markdown(f'<p class="sub-header">👑 {t["ceo"]}</p>', unsafe_allow_html=True)
-    
     sector = st.selectbox(t["sector"], t["sectors"])
     
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -140,16 +115,15 @@ if role == t["ceo"]:
         st.markdown("### Weekly Actionable Strategic Planners")
         st.markdown('<div class="card ceo-card"><b>Covey & OKR Aligned Execution:</b><br>• Focus on Blue Ocean market creation.<br>• Minimize decision latency using real-time predictive analytics.<br>• Balanced Scorecard implementation.</div>', unsafe_allow_html=True)
         if st.button("Generate Weekly Executive Action Plan"):
-            st.success("Generated 10 high-impact strategic actions based on Exponential Organization frameworks!")
+            st.success("Generated 10 high-impact strategic actions based on frameworks!")
 
     with tab2:
         st.markdown("### 100% Talent Matcher")
-        st.write("AI matches candidate psychological profiles (Big Five, MBTI, RIASEC) with organizational culture.")
         candidate_name = st.text_input("Enter Candidate Name:", "John Doe")
         if st.button("Run Deep AI Talent Match"):
             match_score = random.randint(92, 99)
             st.metric(label="Talent & Culture Fit Score", value=f"{match_score}%")
-            st.info(f"Analysis for {candidate_name}: High alignment with organizational values, strong emotional intelligence, and low burnout risk.")
+            st.info(f"Analysis for {candidate_name}: High alignment with organizational values and low burnout risk.")
 
     with tab3:
         st.markdown("### Retention Radar (Employee Turnover Prediction)")
@@ -172,9 +146,7 @@ if role == t["ceo"]:
         st.metric(label="Overall Corporate Wellness Index", value="84 / 100", delta="+4% this month")
         st.progress(0.84)
 
-# -------------------------------------------------------------------------
 # EMPLOYEE PORTAL
-# -------------------------------------------------------------------------
 elif role == t["emp"]:
     st.markdown(f'<p class="sub-header">💼 {t["emp"]}</p>', unsafe_allow_html=True)
     
@@ -187,11 +159,9 @@ elif role == t["emp"]:
     
     with emp_tab1:
         st.markdown("### Safe Net: Emotional AI Chat & Mental Health")
-        st.write("Speak freely. Protected by strict privacy layers and non-violent communication (NVC) principles.")
-        
         user_msg = st.text_input("How are you feeling today? Share your thoughts or workplace stressor:")
         if user_msg:
-            st.markdown(f'<div class="card emp-card"><b>AI Companion (Empathy Mode):</b><br>I hear you, and your feelings are completely valid. Drawing from mindfulness and CBT principles, let us break down what is causing this stress. Remember, seeking balance (Ikigai) is a journey. Let us take three deep breaths together.</div>', unsafe_allow_html=True)
+            st.markdown('<div class="card emp-card"><b>AI Companion (Empathy Mode):</b><br>I hear you, and your feelings are completely valid. Drawing from mindfulness and CBT principles, let us break down what is causing this stress.</div>', unsafe_allow_html=True)
 
     with emp_tab2:
         st.markdown("### Legal Advisor (Labor Law & Human Rights)")
@@ -214,37 +184,22 @@ elif role == t["emp"]:
         if st.button("Start 5-Minute Assessment"):
             st.success("Assessment initialized! Your emotional intelligence quotient (EQ) and cognitive metrics have been updated privately.")
 
-# -------------------------------------------------------------------------
 # KNOWLEDGE BASE EXPLORER
-# -------------------------------------------------------------------------
 elif role == t["kb"]:
     st.markdown(f'<p class="sub-header">📚 {t["kb"]}</p>', unsafe_allow_html=True)
     st.write("Explore the deeply integrated philosophical, psychological, and strategic foundations driving K5502.")
-    
     for category, items in KNOWLEDGE_BASE.items():
         with st.expander(f"📁 {category}"):
             for item in items:
                 st.markdown(f"- {item}")
 
-# -------------------------------------------------------------------------
 # SYSTEM ARCHITECTURE & VALUE
-# -------------------------------------------------------------------------
 else:
     st.markdown(f'<p class="sub-header">🏗️ {t["arch"]}</p>', unsafe_allow_html=True)
-    
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("### 🔒 System Architecture")
-        st.markdown("""
-        - **The Knowledge Base:** Embedded multi-disciplinary frameworks.
-        - **AI Brain:** Context-aware, empathetic reasoning engine.
-        - **Privacy Layer:** Zero-knowledge data leakage prevention & GDPR compliant storage.
-        """)
+        st.markdown("- **The Knowledge Base:** Multi-disciplinary frameworks.\n- **AI Brain:** Context-aware, empathetic reasoning engine.\n- **Privacy Layer:** Zero-knowledge data leakage prevention.")
     with col2:
         st.markdown("### 🚀 Business Value Realization")
-        st.markdown("""
-        - **Zero Turnover Regret:** Radical reduction in employee churn.
-        - **100% Talent Matching:** Precision hiring and role placement.
-        - **Maximized Productivity:** Burnout prevention via proactive mental health tracking.
-        - **Hyper-Personalization:** Individual growth maps for every employee.
-        """)
+        st.markdown("- **Zero Turnover Regret:** Radical reduction in employee churn.\n- **100% Talent Matching:** Precision hiring and role placement.\n- **Maximized Productivity:** Burnout prevention via proactive tracking.")
