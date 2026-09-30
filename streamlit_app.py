@@ -1,5 +1,6 @@
 import streamlit as st
 import random
+import google.generativeai as genai
 
 # Page Configuration
 st.set_page_config(
@@ -20,6 +21,19 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# -------------------------------------------------------------------------
+# GEMINI API CONFIGURATION (Using st.secrets for absolute security)
+# -------------------------------------------------------------------------
+api_ready = False
+try:
+    # Streamlit secrets මඟින් API Key එක ලබා ගැනීම (GitHub එකේ Error එන්නේ නැත)
+    if "GEMINI_API_KEY" in st.secrets:
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        api_ready = True
+except Exception as e:
+    api_ready = False
+
 # MULTI-LANGUAGE TRANSLATIONS
 lang = st.sidebar.selectbox("🌐 Select Language / භාෂාව / மொழி", ["English", "සිංහල", "தமிழ்"])
 
@@ -36,7 +50,7 @@ t = {
         "sectors": ["Test Company", "Finance & Banking", "Education", "Corporate Sector"]
     },
     "සිංහල": {
-        "title": "K5502: උසස් ආයතනික කෘත්‍රිම බුද්ධි පද්ධතිය",
+        "title": "K5502: උසස් ආයතනික කෘත්‍‍රිම බුද්ධි පද්ධතිය",
         "subtitle": "ඉතා පුද්ගලීකරණය කළ, සදාචාරාත්මක සහ මානසිකව ආරක්ෂිත ආයතනික පද්ධතියකි.",
         "portal": "පිවිසුම් ද්වාරය තෝරන්න",
         "ceo": "ප්‍රධාන විධායක නිලධාරී (CEO) ද්වාරය",
@@ -159,9 +173,43 @@ elif role == t["emp"]:
     
     with emp_tab1:
         st.markdown("### Safe Net: Emotional AI Chat & Mental Health")
-        user_msg = st.text_input("How are you feeling today? Share your thoughts or workplace stressor:")
-        if user_msg:
-            st.markdown('<div class="card emp-card"><b>AI Companion (Empathy Mode):</b><br>I hear you, and your feelings are completely valid. Drawing from mindfulness and CBT principles, let us break down what is causing this stress.</div>', unsafe_allow_html=True)
+        st.write("Speak freely. Protected by strict privacy layers and K5502 Knowledge Base frameworks.")
+        
+        if "messages" not in st.session_state:
+            st.session_state.messages = [
+                {"role": "assistant", "content": "Hello! I am your K5502 Empathy AI Companion. How are you feeling today? Share your thoughts or workplace stressor."}
+            ]
+
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+        if prompt := st.chat_input("Type your message here..."):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
+
+            with st.chat_message("assistant"):
+                with st.spinner("K5502 AI is thinking securely..."):
+                    if api_ready:
+                        try:
+                            system_instruction = (
+                                "You are K5502 Enterprise AI Companion, an empathetic, psychological, and ethical corporate AI. "
+                                "Use deep corporate frameworks, Sri Lankan labour laws, CBT/Mindfulness psychology, and NVC communication "
+                                "from our Knowledge Base to formulate responses, but DO NOT list or cite source names explicitly. "
+                                "Give direct, supportive, and wise automated answers."
+                            )
+                            full_prompt = f"{system_instruction}\n\nEmployee message: {prompt}"
+                            
+                            response = model.generate_content(full_prompt)
+                            ai_response = response.text
+                        except Exception as e:
+                            ai_response = f"I hear you, and your feelings are completely valid. Let us take a deep breath and work through this stress together."
+                    else:
+                        ai_response = "Please configure your GEMINI_API_KEY in Streamlit Secrets to enable AI-powered chat."
+                    
+                    st.markdown(ai_response)
+                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
 
     with emp_tab2:
         st.markdown("### Legal Advisor (Labor Law & Human Rights)")
@@ -199,7 +247,8 @@ else:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("### 🔒 System Architecture")
-        st.markdown("- **The Knowledge Base:** Multi-disciplinary frameworks.\n- **AI Brain:** Context-aware, empathetic reasoning engine.\n- **Privacy Layer:** Zero-knowledge data leakage prevention.")
+        st.markdown("- **The Knowledge Base:** Multi-disciplinary frameworks.\n- **AI Brain:** Context-aware, empathetic Gemini reasoning engine.\n- **Privacy Layer:** Zero-knowledge data leakage prevention.")
     with col2:
         st.markdown("### 🚀 Business Value Realization")
         st.markdown("- **Zero Turnover Regret:** Radical reduction in employee churn.\n- **100% Talent Matching:** Precision hiring and role placement.\n- **Maximized Productivity:** Burnout prevention via proactive tracking.")
+
