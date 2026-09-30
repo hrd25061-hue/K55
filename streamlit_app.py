@@ -1,6 +1,6 @@
+import streamlit as st
 import random
 from fpdf import FPDF
-import base64
 
 # Page Configuration
 st.set_page_config(
@@ -37,7 +37,7 @@ def load_questions(lang):
         ]
         eq_bank = [
             {"q": "වැඩ කරන ස්ථානයේදී ඔබේ සගයෙකු ඔබ සමඟ කේන්තියෙන් කතා කළහොත් ඔබ කුමක් කරන්නේද?", "options": ["මාත් කේන්තියෙන් ප්‍රතිචාර දක්වයි", "සන්සුන්ව හේතුව විමසා සාකච්ඡා කරයි", "නොසලකා හරියි", "පැමිණිලි කරයි"], "ans": "සන්සුන්ව හේතුව විමසා සාකච්ඡා කරයි"},
-            {"q": "අසාර්ථක වීමක් හමුවේ ඔබට හැඟෙන පළමු දෙය කුමක්ද?", "options": ["නැවත උත්සාහ නොකර සිටීම", "වෙනත් අයෙකු වැරදිකරු කිරීම", එය ඉගෙනුම් පියවරක් ලෙස ගැනීම, "කාලය නාස්ති වීමක් ලෙස සිතීම"], "ans": එය ඉගෙනුම් පියවරක් ලෙස ගැනීම},
+            {"q": "අසාර්ථක වීමක් හමුවේ ඔබට හැඟෙන පළමු දෙය කුමක්ද?", "options": ["නැවත උත්සාහ නොකර සිටීම", "වෙනත් අයෙකු වැරදිකරු කිරීම", "එය ඉගෙනුම් පියවරක් ලෙස ගැනීම", "කාලය නාස්ති වීමක් ලෙස සිතීම"], "ans": "එය ඉගෙනුම් පියවරක් ලෙස ගැනීම"},
             {"q": "කණ්ඩායම් ව්‍යාපෘතියකදී අදහස් ගැටුමක් ඇති වූ විට ඔබේ ප්‍රවේශය කුමක්ද?", "options": ["මගේ අදහම පමණක් බලපැවැත්වීම", "අන් අයගේ අදහස් වලට ගරු කර පොදු එකඟතාවකට ඒම", "ව්‍යාපෘතියෙන් ඉවත් වීම", "නොසලකා හැරීම"], "ans": "අන් අයගේ අදහස් වලට ගරු කර පොදු එකඟතාවකට ඒම"}
         ]
     elif lang == "தமிழ் (Tamil)":
@@ -47,7 +47,7 @@ def load_questions(lang):
             {"q": "வடக்கு நோக்கி நின்று வலதுபுறம் திரும்பி மீண்டும் இடதுபுறம் திரும்பினால் எந்த திசையை நோக்குகிறீர்கள்?", "options": ["கிழக்கு", "மேற்கு", "வடக்கு", "தெற்கு"], "ans": "கிழக்கு"}
         ]
         eq_bank = [
-            {"q": "வேிட இடத்தில் சக பணியாளர் கோபமாக பேசினால் உங்கள் எதிர்வினை என்ன?", "options": ["கோபப்படுவது", "அமைதியாக பேசி தீர்ப்பது", "புறக்கணிப்பது", "புகார் செய்வது"], "ans": "அமைதியாக பேசி தீர்ப்பது"},
+            {"q": "வேலை இடத்தில் சக பணியாளர் கோபமாக பேசினால் உங்கள் எதிர்வினை என்ன?", "options": ["கோபப்படுவது", "அமைதியாக பேசி தீர்ப்பது", "புறக்கணிப்பது", "புகார் செய்வது"], "ans": "அமைதியாக பேசி தீர்ப்பது"},
             {"q": "தோல்வியை சந்திக்கும் போது உங்கள் மனநிலை எப்படி இருக்கும்?", "options": ["முயற்சியை கைவிடுவது", "மற்றவரை குறை கூறுவது", "அதை ஒரு பாடமாக கற்றுக்கொள்வது", "வருந்துவது"], "ans": "அதை ஒரு பாடமாக கற்றுக்கொள்வது"}
         ]
     else: # English
@@ -64,7 +64,6 @@ def load_questions(lang):
             {"q": "How do you react when unexpected changes happen in a project?", "options": ["Panic", "Adapt flexibly and plan accordingly", "Refuse to change", "Blame others"], "ans": "Adapt flexibly and plan accordingly"}
         ]
     
-    # Randomly shuffle / generate unique sets (simulating dynamic generation for demonstration)
     return random.sample(iq_bank, min(len(iq_bank), 5)), random.sample(eq_bank, min(len(eq_bank), 3))
 
 # --- APP UI FLOW ---
@@ -109,7 +108,6 @@ elif st.session_state.step == "assessment":
 elif st.session_state.step == "results":
     st.header("🏆 Assessment Results & Career Matching Engine")
     
-    # Calculate simulated scores based on inputs
     iq_score = random.randint(115, 140)
     eq_score = random.randint(85, 98)
     
@@ -121,7 +119,6 @@ elif st.session_state.step == "results":
         
     st.success("🎉 Congratulations! Your personalized IQ & EQ profile has been generated successfully.")
     
-    # Certificate Generation Function
     def create_certificate():
         pdf = FPDF()
         pdf.add_page()
@@ -129,10 +126,10 @@ elif st.session_state.step == "results":
         pdf.cell(200, 10, txt="Certificate of Potential & Capacity Assessment", ln=True, align='C')
         pdf.set_font("Arial", '', 12)
         pdf.ln(20)
-        pdf.cell(200, 10, txt=f"This certifies that the candidate has successfully completed", ln=True, align='C')
-        pdf.cell(200, 10, txt=f"the Advanced IQ & EQ Evaluation Engine.", ln=True, align='C')
+        pdf.cell(200, 10, txt="This certifies that the candidate has successfully completed", ln=True, align='C')
+        pdf.cell(200, 10, txt="the Advanced IQ & EQ Evaluation Engine.", ln=True, align='C')
         pdf.ln(15)
-        pdf.cell(200, 10, txt=f"Performance Metrics:", ln=True, align='L')
+        pdf.cell(200, 10, txt="Performance Metrics:", ln=True, align='L')
         pdf.cell(200, 10, txt=f"- IQ Score: {iq_score}", ln=True, align='L')
         pdf.cell(200, 10, txt=f"- EQ Score: {eq_score}%", ln=True, align='L')
         return pdf.output(dest='S').encode('latin1')
@@ -189,18 +186,15 @@ elif st.session_state.step == "chat":
     st.header("🤖 Interactive AI Career Mentor")
     st.write("Ask any follow-up questions regarding your career, skill development, or entrepreneurship journey.")
     
-    # Display chat history
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
             
-    # Chat input
     if prompt := st.chat_input("Ask your mentor anything..."):
         st.session_state.chat_history.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
             
-        # Simulated intelligent native AI response
         response = f"That is a great question regarding '{prompt}'. Based on your profile and long-term goals, consistency and building practical projects will give you the fastest breakthrough. Focus on execution step-by-step!"
         
         st.session_state.chat_history.append({"role": "assistant", "content": response})
